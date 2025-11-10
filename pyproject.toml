@@ -1,0 +1,50 @@
+[project]
+name = "nsclc-volume-capstone"
+version = "0.1.0"
+description = "Benchmarking 3D tumor volume inference models on NSCLC-Radiomics (Lung1). University of San Diego Masters in Applied Artificial Intelligence capstone."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Laurentius von Liechti", email = "lvonliechti@sandiego.edu" }]
+license = { file = "LICENSE" }
+dependencies = [
+  "numpy>=1.26",
+  "pandas>=2.2",
+  "pydicom>=2.4",
+  "SimpleITK>=2.3",
+  "nibabel>=5.2",
+  "scikit-image>=0.24",
+  "matplotlib>=3.9",
+  "seaborn>=0.13",
+  "PyYAML>=6.0",
+  "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+train = [
+  # Install only if training locally
+  "torch>=2.2; platform_system != 'Darwin' or platform_machine != 'arm64'",
+  "monai>=1.3",
+]
+dev = [
+  "ruff>=0.6",
+  "black>=24.8",
+  "mypy>=1.10",
+]
+
+[project.urls]
+ORCID = "https://orcid.org/0009-0005-4736-6987"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["data/**"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+

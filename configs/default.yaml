@@ -1,0 +1,73 @@
+# Paths
+paths:
+  data_root: "data"
+  raw: "data/raw/lung1"
+  interim: "data/interim/lung1"
+  processed: "data/processed/lung1"
+  metadata: "data/metadata"
+  models: "data/models"
+  logs: "data/logs"
+  reports: "reports"
+
+# Reproducibility
+seed: 1337
+folds: 5
+split:
+  strategy: "patient-level"
+  seed: 1337
+
+# Preprocessing
+preprocess:
+  hu_clip: [-1000, 400]
+  normalize: "zscore"
+  resample_iso_mm: 1.25    # training only; keep native spacing for volume metrics
+  keep_native_for_metrics: true
+  qc_overlay_sample_per_fold: 4
+
+# Patching
+patch:
+  size: [128, 128, 128]
+  oversample_positive: true
+
+# Augmentation (training)
+augment:
+  flips: true
+  rotations: true
+  intensity_jitter: true
+  gaussian_noise: true
+
+# Training (shared protocol)
+train:
+  epochs: 200
+  batch_size: 2
+  optimizer: "adam"
+  learning_rate: 0.0005
+  scheduler: "cosine"
+  early_stopping_patience: 20
+  models: ["unet3d", "vnet", "nnunet_external"]
+
+# Thresholding & Post-processing
+inference:
+  threshold: 0.5
+  threshold_mode: "fixed"   # or "youden-val"
+  min_component_volume_cm3: 0.5
+  hole_fill: true
+  surface_smooth: true
+
+# Evaluation
+evaluation:
+  metrics:
+    - dice
+    - jaccard
+    - hd95
+    - surface_dice_2mm
+    - abs_error_cm3
+    - rel_error_pct
+    - ccc
+  stratify_by:
+    - slice_thickness
+    - recon_kernel
+    - tumor_size_bins
+    - vendor
+
+
