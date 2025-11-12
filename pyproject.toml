@@ -19,6 +19,7 @@ dependencies = [
   "PyYAML>=6.0",
   "tqdm>=4.66",
   "rt-utils>=1.2.7",
+  "rich>=14.2.0",
 ]
 
 [project.optional-dependencies]
