@@ -13,14 +13,24 @@ Goal: reproduce clinician-drawn GTV volumes on lung CT with target Dice ≥ 0.85
 
 ## Environment (uv)
 1) Install Python 3.10+ and `uv` (`pip install uv` or see the uv docs).
-2) Create env and install:
-   - Dev only: `uv pip install -e .[dev]`
+2) Bootstrap the environment:
+   - Base deps: `uv sync` (uses `pyproject.toml`/`uv.lock`)
+   - Dev tools (optional): `uv pip install -e .[dev]`
    - Training extras (optional): `uv pip install -e .[train]`
+   - Radiomics extras (optional, for texture features in notebooks): `uv pip install -e .[radiomics]`
+     - Note: On Apple Silicon (arm64), `pyradiomics` wheels may be unavailable and a local build can fail. The notebooks will gracefully skip radiomics features if not installed.
+   - Alternatively (recommended on macOS arm64), install PyRadiomics from GitHub with Makefile helper:
+     - `make setup-radiomics`
+     - This runs:
+       - `uv run python -c "import numpy; print('numpy ok')" || uv sync`
+       - `uv pip install cython scikit-build ninja`
+       - `uv pip install 'git+https://github.com/Radiomics/pyradiomics@master#egg=pyradiomics'`
+       - `uv run python -c "import radiomics, SimpleITK; print('pyradiomics OK')"`
 
 ## Dataset
 NSCLC-Radiomics (Lung1): CT series + RTSTRUCT GTV contours. Place DICOM under:
-- `data/raw/lung1/<patient_id>/CT/...`
-- `data/raw/lung1/<patient_id>/RTSTRUCT/rs.dcm`
+- `data/raw/NSCLC-Radiomics/<patient_id>/CT/...`
+- `data/raw/NSCLC-Radiomics/<patient_id>/RTSTRUCT/rs.dcm`
 
 Legal/Ethics: ensure data access complies with licenses and institutional rules. No PHI should be committed.
 
