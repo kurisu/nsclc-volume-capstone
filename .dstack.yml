@@ -1,0 +1,100 @@
+---
+# Dev env with Cursor & persistent volume
+type: dev-environment
+name: cursor-dev
+python: "3.11"
+ide: cursor
+resources:
+  gpu: 24GB
+  disk: 100GB
+volumes:
+  - name: research-workspace
+    path: /workspace
+working_dir: /workspace/capstone
+inactivity_duration: 20m
+env:
+  - nnUNet_raw=/workspace/nnunet/nnUNet_raw
+  - nnUNet_preprocessed=/workspace/nnunet/nnUNet_preprocessed
+  - nnUNet_results=/workspace/nnunet/nnUNet_results
+---
+# Preprocess (2d or 3d_fullres)
+type: task
+name: nnunet-preprocess
+python: 3.10
+resources:
+  gpu: A100:1
+volumes:
+  - name: research-workspace
+    path: /workspace
+working_dir: /workspace/capstone
+repos:
+  - .
+env:
+  - nnUNet_raw=/workspace/nnunet/nnUNet_raw
+  - nnUNet_preprocessed=/workspace/nnunet/nnUNet_preprocessed
+  - nnUNet_results=/workspace/nnunet/nnUNet_results
+commands:
+  - uv pip install nnunetv2 nibabel SimpleITK scikit-image pandas rich
+  - nnUNetv2_plan_and_preprocess -d 501 -c ${CFG}
+---
+# Train (single fold)
+type: task
+name: nnunet-train
+python: 3.10
+resources:
+  gpu: A100:1
+spot_policy: auto
+utilization_policy:
+  min_gpu_utilization: 10
+  time_window: 1h
+volumes:
+  - name: research-workspace
+    path: /workspace
+working_dir: /workspace/capstone
+repos:
+  - .
+env:
+  - nnUNet_raw=/workspace/nnunet/nnUNet_raw
+  - nnUNet_preprocessed=/workspace/nnunet/nnUNet_preprocessed
+  - nnUNet_results=/workspace/nnunet/nnUNet_results
+commands:
+  - uv pip install nnunetv2
+  - nnUNetv2_train 501 ${CFG} 0 -p nnUNetPlans -device cuda
+---
+# Predict (test set)
+type: task
+name: nnunet-predict
+python: 3.10
+resources:
+  gpu: A100:1
+volumes:
+  - name: research-workspace
+    path: /workspace
+working_dir: /workspace/capstone
+repos:
+  - .
+env:
+  - nnUNet_raw=/workspace/nnunet/nnUNet_raw
+  - nnUNet_preprocessed=/workspace/nnunet/nnUNet_preprocessed
+  - nnUNet_results=/workspace/nnunet/nnUNet_results
+commands:
+  - uv pip install nnunetv2
+  - nnUNetv2_predict -i /workspace/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/imagesTs -o /workspace/nnunet/predsTs -d 501 -c ${CFG} -f 0 -device cuda -chk checkpoint_best.pth
+---
+# Evaluate (repo evaluator)
+type: task
+name: nnunet-eval
+python: 3.10
+resources:
+  gpu: 0
+volumes:
+  - name: research-workspace
+    path: /workspace
+working_dir: /workspace/capstone
+repos:
+  - .
+commands:
+  - uv pip install nibabel numpy pandas rich
+  - python -m src.evaluate --nnunet-preds /workspace/nnunet/predsTs --labels-dir /workspace/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/labelsTr --out /workspace/processed/nnunet_metrics.csv
+
+
