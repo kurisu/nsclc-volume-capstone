@@ -1,39 +1,51 @@
-# nnU-Net as External Baseline (not vendored)
+# nnU-Net Baseline (Apple Silicon, MPS)
 
-We treat nnU-Net as an external baseline. Use upstream installation and training, then import predicted masks here for evaluation alongside other models.
+This project integrates nnU-Net v2 as an external baseline and provides helper scripts to train locally on Apple Silicon (M1/M2/M3) using the PyTorch MPS backend.
 
-## 1) Install nnU-Net (refer to upstream docs)
-- Docs: `https://github.com/MIC-DKFZ/nnUNet`
-- Typical install (conda or venv). Ensure CUDA if training on GPU.
-
-## 2) Data Preparation for Lung1
-Prepare the dataset in nnU-Net’s expected structure (Task directory). This repo does not convert to nnU-Net format; follow nnU-Net guidelines for dataset conversion.
-
-Hints:
-- Inputs: DICOM CT and RTSTRUCT (GTV). You may preconvert RTSTRUCT→NIfTI masks using your own tooling, then build the Task.
-- Verify FrameOfReferenceUID and alignment.
-
-## 3) Train nnU-Net
-Example (pseudo):
+## 1) Install (Apple Silicon)
+- Create a conda/mamba env (Python 3.10–3.12).
+- Install PyTorch (macOS wheels include MPS support) and nnU-Net v2:
 ```
-nnUNetv2_plan_and_preprocess -d <TASK_ID>
-nnUNetv2_train 3d_fullres nnUNetTrainer <TASK_ID> 0
+pip install torch torchvision torchaudio
+pip install nnunetv2 nibabel SimpleITK scikit-image pandas rich
 ```
 
-## 4) Export Predictions
-Generate predictions (NIfTI masks) for your evaluation split, then copy into this repo, e.g.:
+## 2) Environment variables
+Source the helper to set required nnU-Net paths and MPS fallback:
 ```
-data/processed/lung1/preds/nnunet/<patient_id>.nii.gz
+source scripts/nnunet_env.sh
 ```
 
-## 5) Evaluate in This Repo
-Point evaluation to the predictions directory via `configs/default.yaml` (you may add a field like `paths.predictions: data/processed/lung1/preds/nnunet`) and run:
+## 3) Prepare dataset
+Convert NIfTI pairs from `data/interim/<CASE>/ct.nii.gz` and `seg.nii.gz` to nnU-Net v2 raw layout:
 ```
-make evaluate
+make nnunet:prepare
+```
+This creates `data/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/{imagesTr,labelsTr,imagesTs}` and a `dataset.json`.
+
+## 4) Plan and preprocess
+```
+make nnunet:preprocess
+```
+
+## 5) Train (fold 0, 3d_fullres) on MPS
+```
+make nnunet:train_fold0_mps
+```
+The wrapper `scripts/nnunet_train_mps.py` forces MPS if available and enables CPU fallback for unsupported kernels.
+
+## 6) Predict and evaluate
+- Place test images in `imagesTs` (optional).
+- Predict:
+```
+make nnunet:predict
+```
+- Evaluate (bridges to repo evaluation tooling; extend as needed):
+```
+make nnunet:evaluate
 ```
 
 Notes:
-- Keep thresholding/post-processing consistent across models where applicable.
-- Compute volume metrics in native spacing per the project plan.
-
+- Training on MPS is generally slower than CUDA but feasible for the baseline.
+- If you hit OOM, nnU-Net auto-tunes batch size; you can also reduce workers.
 
