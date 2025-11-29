@@ -18,7 +18,5 @@ env:
   - nnUNet_raw=/workspace/nnunet/nnUNet_raw
   - nnUNet_preprocessed=/workspace/nnunet/nnUNet_preprocessed
   - nnUNet_results=/workspace/nnunet/nnUNet_results
-repos:
-  - .
 
 
