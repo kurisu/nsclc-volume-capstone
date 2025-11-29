@@ -24,6 +24,28 @@ evaluate:
 report:
 	@echo "Reports are generated during evaluate; see reports/ and data/reports/"
 
+##
+# nnU-Net (Apple Silicon MPS) helpers
+##
+.PHONY: nnunet:prepare nnunet:preprocess nnunet:train_fold0_mps nnunet:predict nnunet:evaluate
+
+nnunet:prepare:
+	$(PYTHON) scripts/prepare_nnunet_dataset.py
+
+nnunet:preprocess:
+	nnUNetv2_plan_and_preprocess -d 501 -c 3d_fullres
+
+nnunet:train_fold0_mps:
+	$(PYTHON) scripts/nnunet_train_mps.py 501 3d_fullres all -p nnUNetPlans
+
+# Note: requires imagesTs to be populated; outputs to data/nnunet/predsTs
+nnunet:predict:
+	nnUNetv2_predict -i data/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/imagesTs -o data/nnunet/predsTs -d 501 -c 3d_fullres -f 0
+
+# Lightweight bridge to project evaluation (extend src/evaluate.py as needed)
+nnunet:evaluate:
+	$(PYTHON) -m src.evaluate --config $(CONFIG)
+
 lint:
 	ruff check .
 
