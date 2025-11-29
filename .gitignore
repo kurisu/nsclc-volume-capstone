@@ -27,6 +27,7 @@ data/processed/
 data/models/
 data/logs/
 data/reports/
+data/nnunet/
 
 # Reports (top-level)
 reports/
