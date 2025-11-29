@@ -1,0 +1,16 @@
+type: task
+name: nnunet-eval
+python: 3.10
+resources:
+  gpu: 0
+volumes:
+  - name: research-workspace
+    path: /workspace
+working_dir: /workspace/capstone
+repos:
+  - .
+commands:
+  - uv pip install nibabel numpy pandas rich
+  - python -m src.evaluate --nnunet-preds /workspace/nnunet/predsTs --labels-dir /workspace/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/labelsTr --out /workspace/processed/nnunet_metrics.csv
+
+
