@@ -8,11 +8,17 @@ resources:
 volumes:
   - name: research-workspace
     path: /workspace
+repos:
+  - url: git@github.com:kurisu/nsclc-volume-capstone.git
+    path: /workspace/capstone
+    branch: main
 working_dir: /workspace/capstone
 inactivity_duration: 20m
 env:
   - nnUNet_raw=/workspace/nnunet/nnUNet_raw
   - nnUNet_preprocessed=/workspace/nnunet/nnUNet_preprocessed
   - nnUNet_results=/workspace/nnunet/nnUNet_results
+repos:
+  - .
 
 
