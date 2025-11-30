@@ -15,6 +15,6 @@ env:
   - nnUNet_results=/workspace/capstone_storage/nnunet/nnUNet_results
 commands:
   - uv pip install nnunetv2 nibabel SimpleITK scikit-image pandas rich
-  - nnUNetv2_plan_and_preprocess -d 501 -c 3d_fullres -p nnUNetResEncUNetPlans
+  - nnUNetv2_plan_and_preprocess -d 501 -c 3d_fullres -pl nnUNetResEncUNetPlans
 
 
