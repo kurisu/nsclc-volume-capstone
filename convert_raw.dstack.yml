@@ -13,7 +13,7 @@ env:
   - RAW_ROOT=/workspace/capstone_storage/data/raw/NSCLC-Radiomics
   - INTERIM_OUT=/workspace/capstone_storage/data/interim
 commands:
-  - uv pip install --quiet --disable-pip-version-check rt-utils nibabel pydicom SimpleITK rich
+  - uv pip install --quiet --disable-pip-version-check opencv-python-headless rt-utils nibabel pydicom SimpleITK rich
   - uv run --active python scripts/convert_lung1_to_nifti.py --raw-root $RAW_ROOT --interim-out $INTERIM_OUT
 
 
