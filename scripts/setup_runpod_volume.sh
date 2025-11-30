@@ -79,6 +79,15 @@ rsync "${RSYNC_COMMON[@]}" \
   "${LOCAL_ROOT}/scripts/" "${SSH_TARGET}:${REPO_ROOT}/scripts/" || true
 echo "Step 1b: OK"
 
+echo "Step 1c: Rsync raw DICOM dataset if present (this may take a while)..."
+if [[ -d "${LOCAL_ROOT}/data/raw/NSCLC-Radiomics" ]]; then
+  rsync "${RSYNC_COMMON[@]}" \
+    "${LOCAL_ROOT}/data/raw/NSCLC-Radiomics/" "${SSH_TARGET}:${REMOTE_DATA_RAW}/NSCLC-Radiomics/" || true
+  echo "Step 1c: OK (raw DICOM rsynced)"
+else
+  echo "Step 1c: SKIPPED (local data/raw/NSCLC-Radiomics not found)"
+fi
+
 echo "Step 2/5: Clean AppleDouble and .DS_Store on remote..."
 ssh -o BatchMode=yes "${SSH_TARGET}" "bash -lc 'mkdir -p \"${REMOTE_DATA_RAW}\" \"${REMOTE_DATA_INTERIM}\" \"${REMOTE_NNUNET_RAW}\"; find \"${VOLUME_ROOT}\" -type f -name \"._*\" -delete; find \"${VOLUME_ROOT}\" -type f -name \".DS_Store\" -delete; true'"
 if $VERBOSE; then echo "Cleaned AppleDouble/.DS_Store"; fi
