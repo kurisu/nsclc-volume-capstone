@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 from pathlib import Path
 from typing import Iterable, Optional
 
@@ -36,8 +37,46 @@ def find_rtstruct(patient_dir: Path) -> Optional[Path]:
     return None
 
 
+def find_best_ct_series(patient_dir: Path) -> Optional[tuple[list[str], str]]:
+    """
+    Recursively search for the CT series with the most slices under patient_dir.
+    Returns (file_names, series_dir) or None.
+    """
+    reader = sitk.ImageSeriesReader()
+    best_files: list[str] = []
+    best_dir: Optional[str] = None
+    for root, dirs, files in os.walk(patient_dir):
+        # Quick check: skip folders with no DICOM-looking files to keep it fast
+        has_dcm = any(fn.lower().endswith(".dcm") for fn in files)
+        if not has_dcm:
+            continue
+        try:
+            series_ids = reader.GetGDCMSeriesIDs(root)
+        except Exception:
+            continue
+        if not series_ids:
+            continue
+        for sid in series_ids:
+            try:
+                fns = reader.GetGDCMSeriesFileNames(root, sid)
+            except Exception:
+                continue
+            # Prefer larger series (more slices)
+            if len(fns) > len(best_files):
+                best_files = fns
+                best_dir = root
+    if best_files:
+        return best_files, best_dir or str(patient_dir)
+    return None
+
+
 def get_case_id(patient_dir: Path) -> str:
     # Prefer Lung1-XXX style if present, else fallback to folder name
+    # search upwards in path parts
+    for part in reversed(patient_dir.parts):
+        m = re.match(r"(?i)l?ung1[-_]?(\d{3})", part)
+        if m:
+            return f"LUNG1-{m.group(1)}"
     name = patient_dir.name
     for part in name.replace("_", "-").split("-"):
         if part.isdigit() and len(part) == 3:
@@ -87,16 +126,17 @@ def convert_patient(patient_dir: Path, interim_out: Path) -> dict:
     if out_ct.exists() and out_seg.exists():
         return {"case_id": case_id, "status": "skipped_exists"}
 
-    # Read CT as SimpleITK using series reader (patient_dir may be nested, but reader will find series)
-    reader = sitk.ImageSeriesReader()
-    series_ids = reader.GetGDCMSeriesIDs(str(patient_dir))
-    if not series_ids:
+    # Read CT as SimpleITK using series reader (recursively search for series)
+    series = find_best_ct_series(patient_dir)
+    if not series:
         return {"case_id": case_id, "status": "no_ct_series"}
-    # Choose the first series (largest by number of files is more robust)
-    best_sid = max(series_ids, key=lambda sid: len(reader.GetGDCMSeriesFileNames(str(patient_dir), sid)))
-    file_names = reader.GetGDCMSeriesFileNames(str(patient_dir), best_sid)
+    file_names, series_dir = series
+    reader = sitk.ImageSeriesReader()
     reader.SetFileNames(file_names)
-    ct_img = reader.Execute()
+    try:
+        ct_img = reader.Execute()
+    except Exception as e:
+        return {"case_id": case_id, "status": "ct_read_error", "error": str(e)}
 
     # Find RTSTRUCT
     rtstruct_path = find_rtstruct(patient_dir)
@@ -142,7 +182,14 @@ def main() -> None:
     ap.add_argument("--log-json", type=Path, default=None, help="Optional path to write a JSON conversion log")
     args = ap.parse_args()
 
-    patients = [p for p in args.raw_root.iterdir() if p.is_dir()]
+    # Gather patient roots by scanning for directory names matching LUNG1-XXX anywhere under raw-root
+    candidates: list[Path] = []
+    for root, dirs, files in os.walk(args.raw_root):
+        for d in dirs:
+            if re.match(r"(?i)l?ung1[-_]?(\d{3})", d):
+                candidates.append(Path(root) / d)
+    # Fallback to direct children if pattern not found
+    patients = candidates or [p for p in args.raw_root.iterdir() if p.is_dir()]
     patients.sort()
     if args.limit and args.limit > 0:
         patients = patients[: args.limit]
