@@ -19,6 +19,6 @@ env:
   - nnUNet_results=/workspace/capstone_storage/nnunet/nnUNet_results
 commands:
   - uv pip install -U "nnunetv2>=2.6.2" dynamic-network-architectures batchgenerators
-  - nnUNetv2_train 501 3d_fullres 0 -p nnUNetResEncUNetL -device cuda
+  - nnUNetv2_train 501 3d_fullres 0 -p nnUNetResEncUNetLPlans -device cuda
 
 
