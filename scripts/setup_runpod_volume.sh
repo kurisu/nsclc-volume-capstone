@@ -37,9 +37,9 @@ echo "Repo root:       ${REPO_ROOT}"
 echo
 
 echo "Preflight: verify remote connectivity and required tools..."
-ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc "command -v rsync >/dev/null 2>&1 || exit 127; whoami >/dev/null 2>&1 || exit 1"
+ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc "command -v rsync >/dev/null 2>&1 || exit 127; command -v uv >/dev/null 2>&1 || exit 127; whoami >/dev/null 2>&1 || exit 1"
 if [[ $? -ne 0 ]]; then
-  echo "Preflight failed: rsync not found or remote unreachable."
+  echo "Preflight failed: required tools missing or remote unreachable."
   echo "Tip: recreate the dev env (dstack apply -f dev.dstack.yml --recreate) to bootstrap packages."
   exit 1
 fi
@@ -53,7 +53,9 @@ ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc " \
   mkdir -p '${VOLUME_ROOT}/nnunet/nnUNet_raw'; \
   true \
 "
-${VERBOSE:+ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc "ls -ld '${VOLUME_ROOT}' '${VOLUME_ROOT}/data' '${VOLUME_ROOT}/data/raw' '${VOLUME_ROOT}/data/interim' '${VOLUME_ROOT}/nnunet' '${VOLUME_ROOT}/nnunet/nnUNet_raw' || true";}
+if $VERBOSE; then
+  ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc "ls -ld '${VOLUME_ROOT}' '${VOLUME_ROOT}/data' '${VOLUME_ROOT}/data/raw' '${VOLUME_ROOT}/data/interim' '${VOLUME_ROOT}/nnunet' '${VOLUME_ROOT}/nnunet/nnUNet_raw' || true"
+fi
 echo "Step 0: OK"
 
 echo "Step 1/5: Rsync large assets to remote volume..."
@@ -73,50 +75,54 @@ echo "Step 1/5: OK (rsync completed; some 'Operation not permitted' owner/group 
 
 echo "Step 2/5: Clean AppleDouble and .DS_Store on remote..."
 ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc " \
-  mkdir -p ${VOLUME_ROOT}/data/{raw,interim} ${VOLUME_ROOT}/nnunet/nnUNet_raw; \
+  mkdir -p '${VOLUME_ROOT}/data/raw'; \
+  mkdir -p '${VOLUME_ROOT}/data/interim'; \
+  mkdir -p '${VOLUME_ROOT}/nnunet/nnUNet_raw'; \
   find '${VOLUME_ROOT}' -type f -name '._*' -delete; \
   find '${VOLUME_ROOT}' -type f -name '.DS_Store' -delete; \
   true; \
 "
-${VERBOSE:+echo "Cleaned AppleDouble/.DS_Store";}
+if $VERBOSE; then echo "Cleaned AppleDouble/.DS_Store"; fi
 echo "Step 2/5: OK"
 
 echo "Step 3/5: Build nnU-Net raw layout + dataset.json on remote..."
 ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc " \
-  set -euo pipefail; \
-  cd ${REPO_ROOT}; \
-  python scripts/prepare_nnunet_dataset.py \
-    --source ${VOLUME_ROOT}/data/interim \
-    --nnunet-raw ${VOLUME_ROOT}/nnunet/nnUNet_raw \
+  cd '${REPO_ROOT}'; \
+  uv run python scripts/prepare_nnunet_dataset.py \
+    --source '${VOLUME_ROOT}/data/interim' \
+    --nnunet-raw '${VOLUME_ROOT}/nnunet/nnUNet_raw' \
     --dataset-id 501 \
     --dataset-name NSCLC_Lung1 || true; \
-  python scripts/build_dataset_json.py \
-    --dataset_dir ${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1; \
+  uv run python scripts/build_dataset_json.py \
+    --dataset_dir '${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1'; \
   true; \
 "
-${VERBOSE:+ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc "ls -la ${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1 | sed -n '1,10p'";}
+if $VERBOSE; then
+  ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc "ls -la '${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1' | sed -n '1,10p'"
+fi
 echo "Step 3/5: OK"
 
 echo "Step 4/5: Generate splits and populate imagesTs..."
 ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc " \
-  set -euo pipefail; \
-  cd ${REPO_ROOT}; \
-  python scripts/generate_splits.py \
-    --clinical_csv ${VOLUME_ROOT}/data/raw/NSCLC-Radiomics-Lung1.clinical-version3-Oct-2019.csv \
-    --dataset_dir ${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1 \
-    --preprocessed_base ${VOLUME_ROOT}/nnunet/nnUNet_preprocessed/Dataset501_NSCLC_Lung1 \
+  cd '${REPO_ROOT}'; \
+  uv run python scripts/generate_splits.py \
+    --clinical_csv '${VOLUME_ROOT}/data/raw/NSCLC-Radiomics-Lung1.clinical-version3-Oct-2019.csv' \
+    --dataset_dir '${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1' \
+    --preprocessed_base '${VOLUME_ROOT}/nnunet/nnUNet_preprocessed/Dataset501_NSCLC_Lung1' \
     --train 120 --val 20 --test 20; \
-  python scripts/populate_imagesTs.py \
-    --dataset_dir ${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1; \
+  uv run python scripts/populate_imagesTs.py \
+    --dataset_dir '${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1'; \
   true; \
 "
 echo "Step 4/5: OK"
 
 echo "Step 5/5: Sanity counts..."
-IMAGES_TR=$(ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc "find ${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/imagesTr -name '*_0000.nii.gz' | wc -l" || echo 0)
-LABELS_TR=$(ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc "find ${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/labelsTr -name '*.nii.gz' | wc -l" || echo 0)
-IMAGES_TS=$(ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc "find ${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/imagesTs -name '*_0000.nii.gz' | wc -l" || echo 0)
-${VERBOSE:+ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc "echo 'Top of imagesTr:'; ls -la ${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/imagesTr | sed -n '1,10p'; echo 'Top of labelsTr:'; ls -la ${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/labelsTr | sed -n '1,10p'; echo 'Top of imagesTs:'; ls -la ${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/imagesTs | sed -n '1,10p'";}
+IMAGES_TR=$(ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc "find '${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/imagesTr' -maxdepth 1 -type f -name '*_0000.nii.gz' | wc -l" || echo 0)
+LABELS_TR=$(ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc "find '${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/labelsTr' -maxdepth 1 -type f -name '*.nii.gz' | wc -l" || echo 0)
+IMAGES_TS=$(ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc "find '${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/imagesTs' -maxdepth 1 -type f -name '*_0000.nii.gz' | wc -l" || echo 0)
+if $VERBOSE; then
+  ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc "echo 'Top of imagesTr:'; ls -la '${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/imagesTr' | sed -n '1,10p'; echo 'Top of labelsTr:'; ls -la '${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/labelsTr' | sed -n '1,10p'; echo 'Top of imagesTs:'; ls -la '${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/imagesTs' | sed -n '1,10p'"
+fi
 
 echo
 # Summary
