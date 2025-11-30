@@ -37,9 +37,14 @@ echo "Repo root:       ${REPO_ROOT}"
 echo
 
 echo "Preflight: verify remote connectivity and required tools..."
-ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc "command -v rsync >/dev/null 2>&1 || exit 127; command -v uv >/dev/null 2>&1 || exit 127; whoami >/dev/null 2>&1 || exit 1"
-if [[ $? -ne 0 ]]; then
-  echo "Preflight failed: required tools missing or remote unreachable."
+if ! ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc "command -v rsync >/dev/null 2>&1 && command -v uv >/dev/null 2>&1 && whoami >/dev/null 2>&1"; then
+  echo "Preflight failed."
+  echo "Diagnostics (remote):"
+  ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc " \
+    (command -v rsync >/dev/null 2>&1 && echo 'rsync: OK') || echo 'rsync: MISSING'; \
+    (command -v uv >/dev/null 2>&1 && echo 'uv: OK') || echo 'uv: MISSING'; \
+    (whoami >/dev/null 2>&1 && echo 'ssh/whoami: OK') || echo 'ssh/whoami: FAILED'; \
+  " || true
   echo "Tip: recreate the dev env (dstack apply -f dev.dstack.yml --recreate) to bootstrap packages."
   exit 1
 fi
