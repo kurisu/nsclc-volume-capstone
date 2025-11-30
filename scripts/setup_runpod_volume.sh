@@ -40,11 +40,11 @@ echo "Preflight: verify remote connectivity and required tools..."
 if ! ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc "command -v rsync >/dev/null 2>&1 && command -v uv >/dev/null 2>&1 && whoami >/dev/null 2>&1"; then
   echo "Preflight failed."
   echo "Diagnostics (remote):"
-  ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc " \
-    (command -v rsync >/dev/null 2>&1 && echo 'rsync: OK') || echo 'rsync: MISSING'; \
-    (command -v uv >/dev/null 2>&1 && echo 'uv: OK') || echo 'uv: MISSING'; \
-    (whoami >/dev/null 2>&1 && echo 'ssh/whoami: OK') || echo 'ssh/whoami: FAILED'; \
-  " || true
+  ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc ' \
+    if command -v rsync >/dev/null 2>&1; then echo "rsync: OK"; else echo "rsync: MISSING"; fi; \
+    if command -v uv >/dev/null 2>&1; then echo "uv: OK"; else echo "uv: MISSING"; fi; \
+    if whoami >/dev/null 2>&1; then echo "ssh/whoami: OK"; else echo "ssh/whoami: FAILED"; fi; \
+  ' || true
   echo "Tip: recreate the dev env (dstack apply -f dev.dstack.yml --recreate) to bootstrap packages."
   exit 1
 fi
