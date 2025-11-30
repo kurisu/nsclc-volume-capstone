@@ -54,4 +54,7 @@ temp/
 *.tar.gz
 *.tar.zst
 
+# macOS metadata
+._*
+
 
