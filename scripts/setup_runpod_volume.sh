@@ -32,7 +32,9 @@ echo
 
 # Ensure remote directory structure exists (recursive) BEFORE rsync
 ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc " \
-  mkdir -p ${VOLUME_ROOT}/data/{raw,interim} ${VOLUME_ROOT}/nnunet/nnUNet_raw; \
+  mkdir -p ${VOLUME_ROOT}/data/raw; \
+  mkdir -p ${VOLUME_ROOT}/data/interim; \
+  mkdir -p ${VOLUME_ROOT}/nnunet/nnUNet_raw; \
 "
 
 echo "Step 1/5: Rsync large assets to remote volume..."
