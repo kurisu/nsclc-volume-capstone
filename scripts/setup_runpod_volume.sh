@@ -35,6 +35,7 @@ REMOTE_DATA_INTERIM="${VOLUME_ROOT}/data/interim"
 REMOTE_NNUNET_RAW="${VOLUME_ROOT}/nnunet/nnUNet_raw"
 REMOTE_DATASET_DIR="${VOLUME_ROOT}/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1"
 REMOTE_PREPROCESSED_DIR="${VOLUME_ROOT}/nnunet/nnUNet_preprocessed/Dataset501_NSCLC_Lung1"
+UV_RUN="uv run --active"
 
 echo "Local repo root: ${LOCAL_ROOT}"
 echo "Remote target:   ${SSH_TARGET}"
@@ -73,20 +74,25 @@ if [[ -f "${LOCAL_ROOT}/data/raw/NSCLC-Radiomics-Lung1.clinical-version3-Oct-201
 fi
 echo "Step 1/5: OK (rsync completed; some 'Operation not permitted' owner/group messages can be ignored)"
 
+echo "Step 1b: Ensure remote scripts are up to date..."
+rsync "${RSYNC_COMMON[@]}" \
+  "${LOCAL_ROOT}/scripts/" "${SSH_TARGET}:${REPO_ROOT}/scripts/" || true
+echo "Step 1b: OK"
+
 echo "Step 2/5: Clean AppleDouble and .DS_Store on remote..."
 ssh -o BatchMode=yes "${SSH_TARGET}" "bash -lc 'mkdir -p \"${REMOTE_DATA_RAW}\" \"${REMOTE_DATA_INTERIM}\" \"${REMOTE_NNUNET_RAW}\"; find \"${VOLUME_ROOT}\" -type f -name \"._*\" -delete; find \"${VOLUME_ROOT}\" -type f -name \".DS_Store\" -delete; true'"
 if $VERBOSE; then echo "Cleaned AppleDouble/.DS_Store"; fi
 echo "Step 2/5: OK"
 
 echo "Step 3/5: Build nnU-Net raw layout + dataset.json on remote..."
-ssh -o BatchMode=yes "${SSH_TARGET}" "bash -lc 'cd \"${REPO_ROOT}\"; uv run python scripts/prepare_nnunet_dataset.py --source \"${REMOTE_DATA_INTERIM}\" --nnunet-raw \"${REMOTE_NNUNET_RAW}\" --dataset-id 501 --dataset-name NSCLC_Lung1 || true; uv run python scripts/build_dataset_json.py --dataset_dir \"${REMOTE_DATASET_DIR}\"; true'"
+ssh -o BatchMode=yes "${SSH_TARGET}" "bash -lc 'cd \"${REPO_ROOT}\"; ${UV_RUN} python scripts/prepare_nnunet_dataset.py --source \"${REMOTE_DATA_INTERIM}\" --nnunet-raw \"${REMOTE_NNUNET_RAW}\" --dataset-id 501 --dataset-name NSCLC_Lung1 || true; ${UV_RUN} python scripts/build_dataset_json.py --dataset_dir \"${REMOTE_DATASET_DIR}\"; true'"
 if $VERBOSE; then
   ssh -o BatchMode=yes "${SSH_TARGET}" "bash -lc 'ls -la \"${REMOTE_DATASET_DIR}\" | sed -n \"1,10p\"'"
 fi
 echo "Step 3/5: OK"
 
 echo "Step 4/5: Generate splits and populate imagesTs..."
-ssh -o BatchMode=yes "${SSH_TARGET}" "bash -lc 'cd \"${REPO_ROOT}\"; uv run python scripts/generate_splits.py --clinical_csv \"${REMOTE_DATA_RAW}/NSCLC-Radiomics-Lung1.clinical-version3-Oct-2019.csv\" --dataset_dir \"${REMOTE_DATASET_DIR}\" --preprocessed_base \"${REMOTE_PREPROCESSED_DIR}\" --train 120 --val 20 --test 20; uv run python scripts/populate_imagesTs.py --dataset_dir \"${REMOTE_DATASET_DIR}\"; true'"
+ssh -o BatchMode=yes "${SSH_TARGET}" "bash -lc 'cd \"${REPO_ROOT}\"; ${UV_RUN} python scripts/generate_splits.py --clinical_csv \"${REMOTE_DATA_RAW}/NSCLC-Radiomics-Lung1.clinical-version3-Oct-2019.csv\" --dataset_dir \"${REMOTE_DATASET_DIR}\" --preprocessed_base \"${REMOTE_PREPROCESSED_DIR}\" --train 120 --val 20 --test 20; ${UV_RUN} python scripts/populate_imagesTs.py --dataset_dir \"${REMOTE_DATASET_DIR}\"; true'"
 echo "Step 4/5: OK"
 
 echo "Step 5/5: Sanity counts..."
