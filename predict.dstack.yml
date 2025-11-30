@@ -15,6 +15,6 @@ env:
   - nnUNet_results=/workspace/capstone_storage/nnunet/nnUNet_results
 commands:
   - uv pip install nnunetv2
-  - nnUNetv2_predict -i /workspace/capstone_storage/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/imagesTs -o /workspace/capstone_storage/nnunet/predsTs -d 501 -c 3d_fullres -f 0 -device cuda -chk checkpoint_best.pth
+  - nnUNetv2_predict -i /workspace/capstone_storage/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/imagesTs -o /workspace/capstone_storage/nnunet/predsTs -d 501 -c 3d_fullres -p nnUNetResEncUNetL -f 0 -device cuda -chk checkpoint_best.pth
 
 
