@@ -18,5 +18,9 @@ env:
   - nnUNet_raw=/workspace/capstone_storage/nnunet/nnUNet_raw
   - nnUNet_preprocessed=/workspace/capstone_storage/nnunet/nnUNet_preprocessed
   - nnUNet_results=/workspace/capstone_storage/nnunet/nnUNet_results
+commands:
+  - apt-get update
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y rsync jq pigz zstd
+  - rsync --version && jq --version && echo "bootstrap OK"
 
 
