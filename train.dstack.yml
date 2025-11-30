@@ -14,9 +14,9 @@ working_dir: /workspace/capstone
 repos:
   - .
 env:
-  - nnUNet_raw=/workspace/nnunet/nnUNet_raw
-  - nnUNet_preprocessed=/workspace/nnunet/nnUNet_preprocessed
-  - nnUNet_results=/workspace/nnunet/nnUNet_results
+  - nnUNet_raw=/workspace/capstone/data/nnunet/nnUNet_raw
+  - nnUNet_preprocessed=/workspace/capstone/data/nnunet/nnUNet_preprocessed
+  - nnUNet_results=/workspace/capstone/data/nnunet/nnUNet_results
 commands:
   - uv pip install nnunetv2
   - nnUNetv2_train 501 ${CFG} 0 -p nnUNetPlans -device cuda

@@ -11,6 +11,6 @@ repos:
   - .
 commands:
   - uv pip install nibabel numpy pandas rich
-  - python -m src.evaluate --nnunet-preds /workspace/nnunet/predsTs --labels-dir /workspace/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/labelsTr --out /workspace/processed/nnunet_metrics.csv
+  - python -m src.evaluate --nnunet-preds /workspace/capstone/data/nnunet/predsTs --labels-dir /workspace/capstone/data/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/labelsTr --out /workspace/capstone/data/processed/nnunet_metrics.csv
 
 
