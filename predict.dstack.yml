@@ -10,11 +10,11 @@ working_dir: /workspace/capstone
 repos:
   - .
 env:
-  - nnUNet_raw=/workspace/capstone/data/nnunet/nnUNet_raw
-  - nnUNet_preprocessed=/workspace/capstone/data/nnunet/nnUNet_preprocessed
-  - nnUNet_results=/workspace/capstone/data/nnunet/nnUNet_results
+  - nnUNet_raw=/workspace/capstone_storage/nnunet/nnUNet_raw
+  - nnUNet_preprocessed=/workspace/capstone_storage/nnunet/nnUNet_preprocessed
+  - nnUNet_results=/workspace/capstone_storage/nnunet/nnUNet_results
 commands:
   - uv pip install nnunetv2
-  - nnUNetv2_predict -i /workspace/capstone/data/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/imagesTs -o /workspace/capstone/data/nnunet/predsTs -d 501 -c ${CFG} -f 0 -device cuda -chk checkpoint_best.pth
+  - nnUNetv2_predict -i /workspace/capstone_storage/nnunet/nnUNet_raw/Dataset501_NSCLC_Lung1/imagesTs -o /workspace/capstone_storage/nnunet/predsTs -d 501 -c ${CFG} -f 0 -device cuda -chk checkpoint_best.pth
 
 
