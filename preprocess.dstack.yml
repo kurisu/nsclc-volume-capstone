@@ -15,6 +15,6 @@ env:
   - nnUNet_results=/workspace/capstone_storage/nnunet/nnUNet_results
 commands:
   - uv pip install -U "nnunetv2>=2.6.2" dynamic-network-architectures batchgenerators nibabel SimpleITK scikit-image pandas rich
-  - nnUNetv2_plan_and_preprocess -d 501 -c 3d_fullres -pl ExperimentPlannerResEncUNet -overwrite_plans_name nnUNetResEncUNetPlans -preprocessor_name ResEncPreprocessor
+  - nnUNetv2_plan_and_preprocess -d 501 -c 3d_fullres -pl ExperimentPlannerResEncUNet_v2_1 -overwrite_plans_name nnUNetResEncUNetPlans -preprocessor_name ResEncPreprocessor
 
 
