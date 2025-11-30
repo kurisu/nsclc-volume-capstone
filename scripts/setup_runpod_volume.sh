@@ -30,6 +30,11 @@ echo "Volume root:     ${VOLUME_ROOT}"
 echo "Repo root:       ${REPO_ROOT}"
 echo
 
+# Ensure remote directory structure exists (recursive) BEFORE rsync
+ssh -o BatchMode=yes "${SSH_TARGET}" bash -lc " \
+  mkdir -p ${VOLUME_ROOT}/data/{raw,interim} ${VOLUME_ROOT}/nnunet/nnUNet_raw; \
+"
+
 echo "Step 1/5: Rsync large assets to remote volume..."
 rsync -avP \
   --exclude='._*' --exclude='.DS_Store' \
