@@ -48,4 +48,10 @@ temp/
 .vscode/
 .idea/
 
+# Archives created for transfers
+*.tar
+*.tgz
+*.tar.gz
+*.tar.zst
+
 
