@@ -19,6 +19,6 @@ env:
   - nnUNet_results=/workspace/capstone_storage/nnunet/nnUNet_results
 commands:
   - uv pip install nnunetv2
-  - nnUNetv2_train 501 ${CFG} 0 -p nnUNetPlans -device cuda
+  - nnUNetv2_train 501 3d_fullres 0 -p nnUNetPlans -device cuda
 
 
