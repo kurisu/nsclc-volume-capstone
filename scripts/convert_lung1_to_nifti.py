@@ -126,7 +126,26 @@ def save_nifti_from_sitk(img: sitk.Image, out_path: Path) -> None:
 
 
 def save_mask_from_numpy_like_ct(mask: np.ndarray, ct_img: sitk.Image, out_path: Path) -> None:
-    seg = sitk.GetImageFromArray(mask.astype(np.uint8))
+    """
+    Save an rt-utils mask as NIfTI, aligned to the given CT image.
+
+    rt-utils returns masks in CT index order (x, y, z), while SimpleITK's
+    GetImageFromArray expects (z, y, x). We therefore:
+      - verify that the mask shape matches the CT size (x, y, z),
+      - transpose to (z, y, x) before constructing the SimpleITK image.
+    """
+    arr = np.asarray(mask)
+    if arr.ndim != 3:
+        raise ValueError(f"Expected 3D mask (x,y,z), got shape {arr.shape}")
+
+    x_ct, y_ct, z_ct = ct_img.GetSize()  # SimpleITK size is (x, y, z)
+    if arr.shape != (x_ct, y_ct, z_ct):
+        raise ValueError(f"Mask shape {arr.shape} does not match CT size (x,y,z)={x_ct,y_ct,z_ct}")
+
+    # Convert from (x, y, z) -> (z, y, x) for SimpleITK
+    aligned = np.transpose(arr, (2, 1, 0))
+
+    seg = sitk.GetImageFromArray(aligned.astype(np.uint8))
     seg.SetSpacing(ct_img.GetSpacing())
     seg.SetOrigin(ct_img.GetOrigin())
     seg.SetDirection(ct_img.GetDirection())
