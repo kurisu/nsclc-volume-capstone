@@ -13,6 +13,7 @@ env:
   - RAW_ROOT=/workspace/capstone_storage/data/raw/NSCLC-Radiomics
   - INTERIM_OUT=/workspace/capstone_storage/data/interim
 commands:
+  - apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y libgl1 libglib2.0-0
   - uv pip install --quiet --disable-pip-version-check opencv-python-headless rt-utils nibabel pydicom SimpleITK rich
   - uv run --active python scripts/convert_lung1_to_nifti.py --raw-root $RAW_ROOT --interim-out $INTERIM_OUT
 

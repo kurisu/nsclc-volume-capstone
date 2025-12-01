@@ -9,6 +9,31 @@ import numpy as np
 import pandas as pd
 
 
+def get_available_patient_ids(dataset_dir: Path) -> List[str]:
+    """
+    Discover usable subjects based on presence of nnU-Net-ready NIfTI files.
+
+    We treat any case with a label in labelsTr (or, as a fallback, an image in
+    imagesTr) as available. This ensures that splits are always derived from
+    the actually usable segmentation cohort, even if the upstream conversion
+    step changes or fails for some subjects.
+    """
+    images_tr = dataset_dir / "imagesTr"
+    labels_tr = dataset_dir / "labelsTr"
+    ids: set[str] = set()
+
+    if labels_tr.exists():
+        for lab in labels_tr.glob("*.nii.gz"):
+            # labels are <case_id>.nii.gz
+            ids.add(lab.stem)
+    elif images_tr.exists():
+        for img in images_tr.glob("*_0000.nii.gz"):
+            # images are <case_id>_0000.nii.gz
+            ids.add(img.name.replace("_0000.nii.gz", ""))
+
+    return sorted(ids)
+
+
 def stratified_split(
     df: pd.DataFrame,
     train_n: int,
@@ -54,10 +79,12 @@ def stratified_split(
     used = set(train_ids + val_ids + test_ids)
     leftovers = [i for i in all_ids if i not in used]
     rng.shuffle(leftovers)
+
     def take(lst: List[str], n_take: int) -> None:
         for _ in range(max(0, n_take)):
             if leftovers:
                 lst.append(leftovers.pop())
+
     take(train_ids, remaining_train)
     take(val_ids, remaining_val)
     take(test_ids, remaining_test)
@@ -109,8 +136,35 @@ def main() -> None:
         df["tumor_size_bin"] = pd.qcut(df["TumorVolume"].astype(float), q=4, labels=False, duplicates="drop").astype(str)
     else:
         df["tumor_size_bin"] = "NA"
-    # derive splits
+
+    # Restrict to subjects that actually have usable ct+seg in the prepared nnU-Net dataset.
+    # This keeps the splitting fully data-driven: if upstream conversion changes,
+    # the splits automatically reflect the new usable cohort.
+    available_ids = get_available_patient_ids(args.dataset_dir)
+    if available_ids:
+        before = df.shape[0]
+        df = df[df["patient_id"].isin(available_ids)].copy()
+        after = df.shape[0]
+        print(
+            f"Restricted clinical cohort to {after} subjects with usable ct+seg "
+            f"(from {before} clinical rows, {len(available_ids)} available nnU-Net cases)."
+        )
+    else:
+        print(
+            f"WARNING: No usable cases discovered under {args.dataset_dir}. "
+            "Using all clinical subjects for splits."
+        )
+
+    # derive splits (counts remain configurable; by default 120/20/20 as per script args)
     train_ids, val_ids, test_ids = stratified_split(df, args.train, args.val, args.test, args.seed)
+
+    # Simple summary for reporting
+    total_usable = len(df["patient_id"].unique())
+    print(
+        f"Split summary (usable subjects={total_usable}): "
+        f"train={len(train_ids)}, val={len(val_ids)}, test={len(test_ids)}"
+    )
+
     # write splits_final.json (train/val)
     write_splits_final(args.preprocessed_base, train_ids, val_ids)
     # write a small index for test set to populate imagesTs externally
@@ -122,5 +176,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
