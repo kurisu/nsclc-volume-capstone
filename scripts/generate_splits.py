@@ -24,8 +24,12 @@ def get_available_patient_ids(dataset_dir: Path) -> List[str]:
 
     if labels_tr.exists():
         for lab in labels_tr.glob("*.nii.gz"):
-            # labels are <case_id>.nii.gz
-            ids.add(lab.stem)
+            # labels are <case_id>.nii.gz; Path.stem of 'LUNG1-001.nii.gz' is 'LUNG1-001.nii',
+            # so strip an extra '.nii' suffix if present.
+            stem = lab.stem
+            if stem.endswith(".nii"):
+                stem = stem[: -len(".nii")]
+            ids.add(stem)
     elif images_tr.exists():
         for img in images_tr.glob("*_0000.nii.gz"):
             # images are <case_id>_0000.nii.gz
