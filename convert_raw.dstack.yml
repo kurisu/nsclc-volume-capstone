@@ -1,6 +1,7 @@
 type: task
 name: lung1-convert-raw
 python: 3.10
+backend: runpod
 resources:
   gpu: 0
 volumes:

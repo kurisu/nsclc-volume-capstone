@@ -1,8 +1,5 @@
 type: volume
 name: research-workspace
-backend: runpod
-# Change to your preferred RunPod region, e.g., US-NYC-1, EU-FR-PAR-1, etc.
-region: CA-MTL-1
 size: 200GB
 
 

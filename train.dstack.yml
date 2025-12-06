@@ -1,24 +1,22 @@
 type: task
 name: nnunet-train
-python: 3.10
+python: 3.11
 resources:
-  gpu: 24GB
-spot_policy: auto
-utilization_policy:
-  min_gpu_utilization: 10
-  time_window: 1h
+  gpu: 40GB..500GB
+spot_policy: on-demand
 volumes:
   - name: research-workspace
     path: /workspace
 working_dir: /workspace/capstone
 repos:
-  - .
+  - url: git@github.com:kurisu/nsclc-volume-capstone.git
+    path: /workspace/capstone
+    branch: main
 env:
   - nnUNet_raw=/workspace/capstone_storage/nnunet/nnUNet_raw
   - nnUNet_preprocessed=/workspace/capstone_storage/nnunet/nnUNet_preprocessed
   - nnUNet_results=/workspace/capstone_storage/nnunet/nnUNet_results
 commands:
   - uv pip install -U "nnunetv2>=2.6.2" dynamic-network-architectures batchgenerators
-  - nnUNetv2_train 501 3d_fullres 0 -p nnUNetResEncUNetLPlans -device cuda
-
+  - nnUNetv2_train 501 3d_fullres 0 -p nnUNetResEncUNetLPlans --c -device cuda
 
