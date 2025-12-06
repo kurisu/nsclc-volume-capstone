@@ -1,0 +1,21 @@
+type: dev-environment
+name: cursor-dev-ca-mtl-3
+python: 3.11
+ide: cursor
+resources:
+  gpu: 8..80GB
+spot_policy: on-demand
+volumes:
+  - name: research-workspace-ca-mtl-3
+    path: /workspace
+repos:
+  - url: git@github.com:kurisu/nsclc-volume-capstone.git
+    path: /workspace/capstone
+    branch: main
+working_dir: /workspace/capstone
+inactivity_duration: 20m
+env:
+  - nnUNet_raw=/workspace/capstone_storage/nnunet/nnUNet_raw
+  - nnUNet_preprocessed=/workspace/capstone_storage/nnunet/nnUNet_preprocessed
+  - nnUNet_results=/workspace/capstone_storage/nnunet/nnUNet_results
+

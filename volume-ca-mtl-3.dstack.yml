@@ -1,0 +1,6 @@
+type: volume
+name: research-workspace-ca-mtl-3
+backend: runpod
+size: 250GB
+region: CA-MTL-3
+
