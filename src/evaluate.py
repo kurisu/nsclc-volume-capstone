@@ -1,3 +1,13 @@
+"""
+Capstone element: **Model Analysis / Evaluation**.
+
+This CLI evaluates predicted segmentations (e.g., nnU-Net outputs) against
+ground-truth Lung1 labels. It computes overlap metrics (Dice, Jaccard) and
+volume-based error measures, writes per-case metrics to CSV, and prints
+summary statistics that are later visualized in `reports/figures` and used
+in the capstone report.
+"""
+
 from __future__ import annotations
 
 import argparse

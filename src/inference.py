@@ -1,3 +1,12 @@
+"""
+Capstone element: **Model Analysis / Inference** (stub).
+
+This CLI is intended to load the best-performing trained model, run
+segmentation on new Lung1-like CT volumes, and emit both masks and
+volume reports. Together with `src/evaluate.py`, it will support the
+end-to-end “predict and analyze volumes” phase of the capstone.
+"""
+
 from __future__ import annotations
 
 import argparse

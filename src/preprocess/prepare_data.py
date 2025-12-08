@@ -1,3 +1,14 @@
+"""
+Capstone element: **Data Cleaning / Preparation**.
+
+This CLI is the Python entrypoint for taking raw Lung1 DICOM data and
+orchestrating preprocessing steps (RTSTRUCT→mask conversion, creation of
+interim/processed directories, and 5-fold splits) as implemented in the
+project. It is intentionally lightweight so that configuration lives in
+`configs/default.yaml` and heavy-lifting helpers live in `src/data` and
+`scripts/`.
+"""
+
 from __future__ import annotations
 
 import argparse

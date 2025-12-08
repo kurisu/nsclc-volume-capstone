@@ -1,3 +1,14 @@
+"""
+Capstone elements: **Model Design/Building**, **Model Training**, and
+**Model Optimization** (stub).
+
+This module is a CLI scaffold for training custom 3D segmentation models
+on Lung1 (e.g., MONAI 3D U-Net or V-Net). It loads `configs/default.yaml`
+to discover which models and hyperparameters to use, and is designed to be
+extended with dataloaders, a training loop, and optimizer/scheduler logic
+in line with the nnU-Net baseline.
+"""
+
 from __future__ import annotations
 
 import argparse

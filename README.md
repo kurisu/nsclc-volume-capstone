@@ -11,6 +11,42 @@ Goal: reproduce clinician-drawn GTV volumes on lung CT with target Dice ≥ 0.85
 - `src/`: code (data I/O, preprocessing, training, evaluation)
 - `reports/`: figures and metrics generated during evaluation
 
+## Stages
+
+- **Data Cleaning / Preparation**
+  - [`notebooks/01_preliminary_data_understanding.ipynb`](notebooks/01_preliminary_data_understanding.ipynb): validates raw NSCLC-Radiomics/Lung1 data, checks CT/RTSTRUCT coverage, and performs initial QC.
+  - [`src/data/dicom_io.py`](src/data/dicom_io.py): low-level DICOM/RTSTRUCT I/O helpers for CT series and structure sets.
+  - [`src/preprocess/prepare_data.py`](src/preprocess/prepare_data.py): CLI entry point that orchestrates conversion from raw DICOM to cleaned/interim artifacts and sets up split-ready folders.
+  - [`scripts/convert_lung1_to_nifti.py`](scripts/convert_lung1_to_nifti.py): converts Lung1 DICOM CT + RTSTRUCT into aligned NIfTI volumes and GTV masks (patient-level cleanup and ROI selection).
+  - [`scripts/prepare_nnunet_dataset.py`](scripts/prepare_nnunet_dataset.py), [`scripts/build_dataset_json.py`](scripts/build_dataset_json.py), [`scripts/generate_splits.py`](scripts/generate_splits.py), [`scripts/populate_imagesTs.py`](scripts/populate_imagesTs.py): prepare cleaned nnU-Net-style datasets (train/val/test splits, JSON metadata, images/labels layout).
+
+- **Exploratory Data Analysis (EDA)**
+  - [`notebooks/01_preliminary_data_understanding.ipynb`](notebooks/01_preliminary_data_understanding.ipynb): dataset inventory, CT/RTSTRUCT availability, metadata distributions, and basic visual checks.
+  - [`notebooks/02_data_exploration.ipynb`](notebooks/02_data_exploration.ipynb): explores tumor volume vs voxel counts, slice thickness, reconstruction kernel, morphology, and radiomics-style descriptors; saves aggregated metrics to `data/processed/roi_metrics.parquet` and figures to `reports/figures/`.
+
+- **Model Design / Building**
+  - [`docs/baselines/nnunet.md`](docs/baselines/nnunet.md): documents the primary 3D segmentation baseline (nnU-Net) and how it is configured and run for Lung1.
+  - [`scripts/nnunet_train_mps.py`](scripts/nnunet_train_mps.py): configures and launches nnU-Net 3d_fullres training on macOS/MPS or compatible GPUs (defines architecture variant, plans, and trainer).
+  - [`src/train.py`](src/train.py): planned entry point for custom 3D models (e.g., MONAI 3D U-Net / V-Net); currently a bootstrap stub that loads `configs/default.yaml` and reports configured model candidates.
+
+- **Model Training**
+  - [`scripts/nnunet_train_mps.py`](scripts/nnunet_train_mps.py): runs full nnU-Net training for Dataset501_NSCLC_Lung1 (fold selection, epochs, logs).
+  - [`convert_raw.dstack.yml`](convert_raw.dstack.yml), [`preprocess.dstack.yml`](preprocess.dstack.yml), [`train.dstack.yml`](train.dstack.yml), [`train-ca-mtl-3.dstack.yml`](train-ca-mtl-3.dstack.yml): dstack job specs that automate preprocessing and training runs in remote environments.
+  - [`src/train.py`](src/train.py): CLI scaffold for training custom models locally using the same config file structure as nnU-Net jobs.
+
+- **Model Optimization (hyperparameters, runtime)**
+  - [`scripts/nnunet_train_mps.py`](scripts/nnunet_train_mps.py): exposes core training hyperparameters (fold choice, batch size, learning rate schedule) for controlled experiments.
+  - [`scripts/analyze_nnunet_training.py`](scripts/analyze_nnunet_training.py): parses nnU-Net training logs, aggregates epoch-level metrics, and produces plots for pseudo Dice, losses, learning rate, and epoch time to guide optimization decisions.
+  - [`configs/default.yaml`](configs/default.yaml): central place for dataset paths, seeds, folds, and model-related options that affect optimization.
+
+- **Model Analysis / Evaluation**
+  - [`src/utils/metrics.py`](src/utils/metrics.py): defines core segmentation metrics used in this project (Dice, Jaccard; HD95 and Surface Dice placeholders are documented for future extension).
+  - [`src/utils/geometry.py`](src/utils/geometry.py): volume computation utilities used when turning binary masks and voxel spacing into physical tumor volumes.
+  - [`src/evaluate.py`](src/evaluate.py): CLI for evaluating predicted segmentations (e.g., nnU-Net outputs) against ground-truth Lung1 labels; computes overlap metrics and volume errors and writes CSV summaries.
+  - [`scripts/analyze_nnunet_training.py`](scripts/analyze_nnunet_training.py): analyzes training dynamics (convergence, stability, epoch time) from nnU-Net logs and writes both CSV aggregates and diagnostic plots under `reports/figures/`.
+  - [`volume.dstack.yml`](volume.dstack.yml), [`eval.dstack.yml`](eval.dstack.yml): dstack specs that run external-test evaluation, aggregate metrics into `data/processed/`, and generate the summary figures in `reports/figures/`.
+  - [`src/inference.py`](src/inference.py): planned CLI for loading the best model checkpoint and producing masks + volume reports on new data (bootstrap stub, complementary to `src/evaluate.py`).
+
 ## Environment (uv)
 1) Install Python 3.10+ and `uv` (`pip install uv` or see the uv docs).
 2) Bootstrap the environment:
